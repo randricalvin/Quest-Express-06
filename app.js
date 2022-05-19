@@ -21,28 +21,48 @@ connection.connect((err) => {
 });
 
 app.use(express.json());
+connection.query("SELECT * FROM movies", (err, result) => {
+  // Do something when mysql is done executing the query
+  console.log(err, result)
+});
 
-app.get("/api/users", (req, res) => {
-  connection.query("SELECT * FROM users", (err, result) => {
+app.get("/api/movies", (req, res) => {
+  let sql = "SELECT * FROM movies";
+  const sqlValues = [];
+
+  if (req.query.color) {
+    sql += " WHERE color = ?";
+    sqlValues.push(req.query.color);
+  }
+  if (req.query.max_duration) {
+    sql += " WHERE duration <= ?";
+    sqlValues.push(req.query.max_duration);
+  }
+
+  connection.query(sql, sqlValues, (err, result) => {
     if (err) {
       console.error(err);
-      res.status(500).send("Error retrieving data from database");
+      res.status(500).send("Error retrieving users from database");
     } else {
       res.json(result);
     }
   });
 });
 
-app.post('/api/users', (req, res) => {
-  const { firstname, lastname, email } = req.body;
-  // const threadId = req.body;
+
+app.get('/api/movies/:id', (req, res) => {
+  const userId = req.params.id;
   connection.query(
-    'INSERT INTO users(firstname, lastname, email) VALUES (?, ?, ?)', [firstname, lastname, email],
+    'SELECT * FROM movies WHERE id = ?',
+    [userId],
     (err, result) => {
       if (err) {
-        res.status(500).send('Error saving the user');
+        console.error(err);
+        res.status(500).send('Error retrieving users from database');
+      } else if (result.length === 0) {
+        res.status(404).send("Movie not found");
       } else {
-        res.status(200).send('user successfully saved');
+        res.json(result[0]);
       }
     }
   );
